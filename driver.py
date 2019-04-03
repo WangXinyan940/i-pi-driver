@@ -1,3 +1,17 @@
+"""
+---------------------------------------------------------------------
+|I-PI socket client.
+|
+|Version: 0.1
+|Program Language: Python 3.6
+|Developer: Xinyan Wang
+|Homepage:https://github.com/WangXinyan940/i-pi-driver
+|
+|Receive coordinate and send force back to i-PI server using socket.
+|Read http://ipi-code.org/assets/pdf/manual.pdf for details.
+---------------------------------------------------------------------
+"""
+import os
 import socket
 import struct
 import numpy as np
@@ -10,9 +24,9 @@ FEMTO = 1e-15
 PICO = 1e-12
 EH = 4.35974417e-18  # Hartrees -> J
 EV = 1.6021766209e-19  # eV -> J
-H = 6.626069934e-34
-KB = 1.38064852e-23
-MOLE = 6.02e23
+H = 6.626069934e-34 # Planck const
+KB = 1.38064852e-23 # Boltzmann const
+MOLE = 6.02214129e23
 KJ = 1000.0
 KCAL = 4184.0
 # HEADERS
@@ -27,6 +41,9 @@ FLOAT = 8
 
 
 class BaseDriver(object):
+    """
+    Base class of Socket driver.
+    """
 
     def __init__(self, port, addr="127.0.0.1"):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -43,11 +60,17 @@ class BaseDriver(object):
         self.natom = -1
 
     def grad(self, crd):
+        """
+        Calculate gradient.
+        Need to be rewritten in inheritance.
+        """
         return None, None
 
     def update(self, text):
         """
         Update system message from INIT motion.
+        Need to be rewritten in inheritance.
+        Mostly we don't need it.
         """
         pass
 
@@ -134,6 +157,10 @@ class BaseDriver(object):
 
 
 class HarmonicDriver(BaseDriver):
+    """
+    Driver for ideal gas molecule with harmonic potential.
+    Just for test.
+    """
 
     def __init__(self, port, addr, k):
         BaseDriver.__init__(self, port, addr)
@@ -147,6 +174,9 @@ class HarmonicDriver(BaseDriver):
 
 
 class GaussDriver(BaseDriver):
+    """
+    Driver for QM calculation with Gaussian.
+    """
 
     def __init__(self, port, addr, template, atoms, path="g09"):
         BaseDriver.__init__(self, port, addr)
@@ -157,6 +187,9 @@ class GaussDriver(BaseDriver):
         self.gau = path
 
     def gengjf(self, crd):
+        """
+        Generate .gjf file.
+        """
         with open("tmp.gjf", "w") as f:
             for line in self.template:
                 if "[coord]" in line:
@@ -166,6 +199,9 @@ class GaussDriver(BaseDriver):
                     f.write(line)
 
     def readlog(self):
+        """
+        Get energy and force from .log file.
+        """
         with open("tmp.log", "r") as f:
             text = f.readlines()
         natoms = len(self.atoms)
@@ -174,7 +210,8 @@ class GaussDriver(BaseDriver):
             ener = ener[-1]
             ener = np.float64(ener.split()[4])
         else:
-            ener = np.float64([i for i in text if "Energy=" in i][-1].split()[1])
+            ener = np.float64(
+                [i for i in text if "Energy=" in i][-1].split()[1])
         for ni, li in enumerate(text):
             if "Forces (Hartrees/Bohr)" in li:
                 break
@@ -186,7 +223,7 @@ class GaussDriver(BaseDriver):
 
     def grad(self, crd):
         self.gengjf(crd)
-        os.system("%s tmp.gjf"%self.gau)
+        os.system("%s tmp.gjf" % self.gau)
         energy, grad = self.readlog()
         energy = energy * EH
         grad = grad * (EH / BOHR)
