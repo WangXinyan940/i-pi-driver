@@ -155,8 +155,15 @@ class BaseDriver(object):
         """
         Reply the request from server.
         """
-        header = self.socket.recv(12).strip()
-        print(header)
+        try:
+            self.socket.settimeout(10)
+            header = self.socket.recv(12).strip()
+            print(header)
+            self.socket.settimeout(None)
+        except socket.timeout as e:
+            raise TimeOutSignal("Time out, quit.")
+        if len(header) < 2:
+            raise TimeOutSignal()
         if header == "STATUS":
             self.status()
         elif header == "INIT":
