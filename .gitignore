@@ -1,2 +1,7 @@
 *.pyc
 example/h2/#*
+example/h2/RESTART
+exapmle/h2/*.xyz
+exapmle/h2/*.out
+exapmle/h2/tmp.*
+log
