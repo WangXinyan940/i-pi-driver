@@ -24,8 +24,8 @@ FEMTO = 1e-15
 PICO = 1e-12
 EH = 4.35974417e-18  # Hartrees -> J
 EV = 1.6021766209e-19  # eV -> J
-H = 6.626069934e-34 # Planck const
-KB = 1.38064852e-23 # Boltzmann const
+H = 6.626069934e-34  # Planck const
+KB = 1.38064852e-23  # Boltzmann const
 MOLE = 6.02214129e23
 KJ = 1000.0
 KCAL = 4184.0
@@ -40,6 +40,13 @@ INT = 4
 FLOAT = 8
 
 
+class ExitSignal(BaseException):
+    pass
+
+
+class TimeOutSignal(BaseException):
+    pass
+
 class BaseDriver(object):
     """
     Base class of Socket driver.
@@ -47,7 +54,12 @@ class BaseDriver(object):
 
     def __init__(self, port, addr="127.0.0.1"):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.connect((addr, port))
+        self.socket.settimeout(10)
+        try:
+            self.socket.connect((addr, port))
+            self.socket.settimeout(None)
+        except socket.timeout as e:
+            raise TimeOutSignal("Time out, quit.")
         self.ifInit = False
         self.ifForce = False
         self.cell = None
@@ -137,13 +149,14 @@ class BaseDriver(object):
         Exit.
         """
         self.socket.close()
-        exit()
+        raise ExitSignal()
 
     def parse(self):
         """
         Reply the request from server.
         """
         header = self.socket.recv(12).strip()
+        print(header)
         if header == "STATUS":
             self.status()
         elif header == "INIT":
@@ -194,7 +207,8 @@ class GaussDriver(BaseDriver):
             for line in self.template:
                 if "[coord]" in line:
                     for i in range(len(self.atoms)):
-                        f.write("%s %16.8f %16.8f %16.8f\n" % (self.atoms[i], *crd[i]))
+                        f.write("%s %16.8f %16.8f %16.8f\n" %
+                                (self.atoms[i], crd[i, 0], crd[i, 1], crd[i, 2]))
                 else:
                     f.write(line)
 
@@ -222,7 +236,7 @@ class GaussDriver(BaseDriver):
         return ener, - np.array(forces)
 
     def grad(self, crd):
-        self.gengjf(crd)
+        self.gengjf(crd / ANGSTROM)
         os.system("%s tmp.gjf" % self.gau)
         energy, grad = self.readlog()
         energy = energy * EH
