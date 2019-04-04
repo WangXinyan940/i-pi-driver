@@ -1,0 +1,13 @@
+%nproc=4
+%mem=100mw
+#p HF/6-31G* nosymm force int=fine
+
+Title
+
+0 1
+[coord]
+
+
+
+
+
