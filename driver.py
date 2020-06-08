@@ -135,9 +135,9 @@ class BaseDriver(object):
         for f in self.force.ravel():
             self.socket.send(struct.pack("d", f / (EH / BOHR))
                              )  # Force unit: xx
-        virial = np.diag((self.force * self.crd).sum(axis=0)).ravel() / EH
+        virial = (self.force * self.crd).ravel()
         for v in virial:
-            self.socket.send(struct.pack("d", v))
+            self.socket.send(struct.pack("d", v / EH))
         extra = self.extra if len(self.extra) > 0 else " "
         lextra = len(extra)
         self.socket.send(struct.pack("i", lextra))
