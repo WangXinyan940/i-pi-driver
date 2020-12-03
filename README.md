@@ -11,7 +11,7 @@ class NewDriver(BaseDriver):
         return energy, grad, virial
 ```
 
-其中crd、energy与grad均为SI单位。driver.py中提供了常数用以实现常用单位到SI单位的转换，示例如下：
+其中crd、energy、grad与virial均为SI单位。driver.py中提供了常数用以实现常用单位到SI单位的转换，示例如下：
 
 ```
 # constants from driver.py
