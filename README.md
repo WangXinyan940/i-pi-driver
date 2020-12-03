@@ -5,10 +5,10 @@
 项目中的BaseDriver类实现了与i-PI server的基本交互，包括接收盒子及坐标信息以及发送坐标对应的力、能量与维里。用户使用时应继承driver.py中的BaseDriver类，并重新定义其中的grad函数实现能量及梯度的计算。其形式为：
 ```
 class NewDriver(BaseDriver):
-    def grad(self, crd):
+    def grad(self, crd, cell=None):
         #do the calculation
         ...
-        return energy, grad
+        return energy, grad, virial
 ```
 
 其中crd、energy与grad均为SI单位。driver.py中提供了常数用以实现常用单位到SI单位的转换，示例如下：
