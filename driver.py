@@ -67,16 +67,17 @@ class BaseDriver(object):
         self.crd = None
         self.energy = None
         self.force = None
+        self.virial = None
         self.extra = ""
         self.nbead = -1
         self.natom = -1
 
     def grad(self, crd):
         """
-        Calculate gradient.
+        Calculate gradient and virial tensor (if needed).
         Need to be rewritten in inheritance.
         """
-        return None, None
+        return None, None, None # energy, force, virial
 
     def update(self, text):
         """
@@ -120,9 +121,10 @@ class BaseDriver(object):
         crd = np.frombuffer(self.socket.recv(
             FLOAT * 3 * self.natom), dtype=np.float64)
         self.crd = crd.reshape((self.natom, 3)) * BOHR
-        energy, force = self.grad(self.crd)
+        energy, force, virial = self.grad(self.crd)
         self.energy = energy
         self.force = - force
+        self.virial = virial
         self.ifForce = True
 
     def getforce(self):
@@ -135,7 +137,10 @@ class BaseDriver(object):
         for f in self.force.ravel():
             self.socket.send(struct.pack("d", f / (EH / BOHR))
                              )  # Force unit: xx
-        virial = (self.force * self.crd).ravel()
+        if self.virial is None:
+            virial = (self.force * self.crd).ravel()
+        else:
+            self.virial = virial.ravel()
         for v in virial:
             self.socket.send(struct.pack("d", v / EH))
         extra = self.extra if len(self.extra) > 0 else " "
