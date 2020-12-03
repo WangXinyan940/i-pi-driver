@@ -72,7 +72,7 @@ class BaseDriver(object):
         self.nbead = -1
         self.natom = -1
 
-    def grad(self, crd):
+    def grad(self, crd, cell=None):
         """
         Calculate gradient and virial tensor (if needed).
         Need to be rewritten in inheritance.
@@ -191,11 +191,11 @@ class HarmonicDriver(BaseDriver):
         BaseDriver.__init__(self, port, addr)
         self.kconst = k * (KJ / MOLE)
 
-    def grad(self, crd):
+    def grad(self, crd, cell=None):
         r = (crd ** 2).sum(axis=1)
         energy = (self.kconst * r ** 2).sum()
         grad = 2 * self.kconst * crd / r.reshape((-1, 1))
-        return energy, grad
+        return energy, grad, None
 
 
 class GaussDriver(BaseDriver):
@@ -247,13 +247,13 @@ class GaussDriver(BaseDriver):
                   for i in forces]
         return ener, - np.array(forces)
 
-    def grad(self, crd):
+    def grad(self, crd, cell=None):
         self.gengjf(crd / ANGSTROM)
         os.system("%s tmp.gjf" % self.gau)
         energy, grad = self.readlog()
         energy = energy * EH
         grad = grad * (EH / BOHR)
-        return energy, grad
+        return energy, grad, None
 
 
 if __name__ == '__main__':
